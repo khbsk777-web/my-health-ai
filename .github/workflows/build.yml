@@ -5,7 +5,9 @@ name: Build Check
 on:
   push:
     branches: [main]
+    paths-ignore: ['docs/**', 'tests/**', 'README.md']
   pull_request:
+    paths-ignore: ['docs/**', 'tests/**', 'README.md']
   workflow_dispatch:
 
 jobs:

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MY HEALTH AI">
+<meta name="theme-color" content="#000000">
+<meta name="robots" content="noindex">
+<title>MY HEALTH AI</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+:root{
+  --bg:#f2f2f7; --card:#fff; --text:#000; --sub:#6e6e73; --line:#e5e5ea;
+  --blue:#007aff; --green:#34c759; --orange:#ff9500; --red:#ff3b30;
+  --deep:#3634a3; --core:#5e5ce6; --rem:#64d2ff; --awake:#ff9f0a;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#000; --card:#1c1c1e; --text:#fff; --sub:#98989d; --line:#38383a; --blue:#0a84ff; --green:#30d158; --orange:#ff9f0a; --red:#ff453a; }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;font-size:16px;line-height:1.5}
+header{padding:calc(env(safe-area-inset-top) + 12px) 20px 4px}
+header h1{margin:0;font-size:30px;font-weight:800}
+header .date{color:var(--sub);font-size:14px}
+main{padding:8px 16px calc(96px + env(safe-area-inset-bottom))}
+section.tab{display:none}
+section.tab.active{display:block}
+h2{font-size:20px;margin:20px 4px 8px}
+.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.grid .card{margin:0}
+.label{color:var(--sub);font-size:13px}
+.big{font-size:26px;font-weight:700}
+.unit{font-size:14px;color:var(--sub);font-weight:400;margin-left:2px}
+.na{font-size:17px;color:var(--sub);font-weight:600}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:700;color:#fff}
+.lv0{background:var(--green)} .lv1{background:var(--orange)} .lv2{background:var(--red)} .lvn{background:var(--sub)}
+.scorewrap{display:flex;align-items:center;gap:16px}
+.finding{border-left:4px solid var(--orange);padding:4px 0 4px 12px;margin:10px 0}
+.finding.l2{border-color:var(--red)} .finding.l0{border-color:var(--green)}
+.finding b{display:block}
+.muted{color:var(--sub);font-size:14px}
+button,.btn{appearance:none;border:0;border-radius:12px;background:var(--blue);color:#fff;font-size:16px;font-weight:600;padding:13px 16px;width:100%;margin-top:8px;cursor:pointer;font-family:inherit}
+button.secondary{background:var(--line);color:var(--text)}
+button.danger{background:transparent;color:var(--red);border:1px solid var(--red)}
+input,select,textarea{width:100%;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);font-family:inherit}
+textarea{min-height:110px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.form label{display:block;margin:10px 0 4px;font-size:14px;color:var(--sub)}
+.stagebar{display:flex;height:22px;border-radius:6px;overflow:hidden;margin:8px 0}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:middle}
+svg text{fill:var(--sub);font-size:10px}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;color:var(--sub);margin:0;padding:8px 0 6px;font-size:11px;font-weight:500;border-radius:0}
+nav button .ic{display:block;font-size:22px;line-height:1.1}
+nav button.active{color:var(--blue)}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translateX(-50%);background:var(--blue);color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.3);padding:10px 18px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9;max-width:90%}
+#toast.show{opacity:1}
+ol.steps{padding-left:22px;margin:6px 0} ol.steps li{margin:6px 0}
+code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px;word-break:break-all}
+.disclaimer{font-size:12px;color:var(--sub);margin:16px 4px}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">ホーム</h1>
+  <div class="date" id="dateLabel"></div>
+</header>
+
+<main>
+  <!-- ① ホーム -->
+  <section class="tab active" id="tab-home"></section>
+  <!-- ② 睡眠 -->
+  <section class="tab" id="tab-sleep"></section>
+  <!-- ③ AI分析 -->
+  <section class="tab" id="tab-analysis"></section>
+  <!-- ④ 運動 -->
+  <section class="tab" id="tab-activity"></section>
+  <!-- ⑤ データ管理 -->
+  <section class="tab" id="tab-data">
+    <h2>プロフィール</h2>
+    <div class="card form">
+      <div class="muted">生活改善のアドバイスに使います。この端末の中だけに保存されます。</div>
+      <label for="pSex">性別</label>
+      <select id="pSex"><option value="">未設定</option><option>男性</option><option>女性</option><option>回答しない</option></select>
+      <label for="pBirth">生まれた年（西暦）</label>
+      <input id="pBirth" type="number" inputmode="numeric" placeholder="例：1997">
+      <label for="pHeight">身長（cm）</label>
+      <input id="pHeight" type="number" inputmode="decimal" placeholder="例：172">
+      <label for="pWeight">体重（kg）</label>
+      <input id="pWeight" type="number" inputmode="decimal" placeholder="例：68">
+      <div class="muted" id="pAuto"></div>
+      <button id="saveProfile">保存する</button>
+    </div>
+
+    <h2>データの取り込み</h2>
+    <div class="card">
+      <div class="muted">ふだんはショートカットを実行すると自動で取り込まれます。うまくいかないときは、ショートカットがコピーした文字をここに貼り付けてください。</div>
+      <textarea id="pasteArea" placeholder="種類|開始日|終了日|値|単位"></textarea>
+      <button id="importPaste">貼り付けた内容を取り込む</button>
+    </div>
+
+    <h2>保存しているデータ</h2>
+    <div class="card" id="storageInfo"></div>
+
+    <h2>バックアップ</h2>
+    <div class="card">
+      <div class="muted">Safariは長い間開かないサイトのデータを消すことがあります。<b>ホーム画面に追加</b>して使い、ときどきバックアップを保存してください。</div>
+      <button id="exportBackup" class="secondary">バックアップを書き出す</button>
+      <button id="importBackupBtn" class="secondary">バックアップから戻す</button>
+      <input type="file" id="importBackup" accept=".json,application/json" hidden>
+    </div>
+
+    <h2>プライバシー</h2>
+    <div class="card">
+      <div class="row"><span>保存場所</span><span class="muted">この端末のブラウザの中だけ</span></div>
+      <div class="row"><span>外部への送信</span><span class="muted">しない</span></div>
+      <div class="row"><span>ログイン</span><span class="muted">不要</span></div>
+      <button id="deleteAll" class="danger">すべてのデータを削除</button>
+    </div>
+    <p class="disclaimer">MY HEALTH AI は医療機器ではなく、病気の診断はしません。気になる症状がある場合は医療機関に相談してください。</p>
+  </section>
+</main>
+
+<nav>
+  <button data-tab="home" class="active"><span class="ic">♥︎</span>ホーム</button>
+  <button data-tab="sleep"><span class="ic">☾</span>睡眠</button>
+  <button data-tab="analysis"><span class="ic">✦</span>AI分析</button>
+  <button data-tab="activity"><span class="ic">⚑</span>運動</button>
+  <button data-tab="data"><span class="ic">⚙︎</span>データ</button>
+</nav>
+<div id="toast"></div>
+
+<script src="logic.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
