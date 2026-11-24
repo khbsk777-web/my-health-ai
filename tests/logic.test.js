@@ -69,6 +69,18 @@ assert.strictEqual(M.analyze({}, profile), null);
 const empty = M.buildDays([]);
 assert.deepStrictEqual(empty, {});
 
+// 睡眠スコア
+const good = M.sleepScore(days, '2026-11-17', profile);
+assert.strictEqual(good.total, 99, JSON.stringify(good.parts));
+assert.strictEqual(good.label, 'とても良い');
+const bad = M.sleepScore(days, '2026-11-19', profile);
+assert.strictEqual(bad.total, 37, JSON.stringify(bad.parts));
+assert.strictEqual(bad.label, '低い');
+assert.strictEqual(bad.priority.id, 'duration');
+console.log(bad.parts.map(p => `${p.name} ${p.score}/${p.max}：${p.note} → ${p.tip}`).join('\n'));
+const first = M.sleepScore(days, '2026-11-10', profile);
+assert.strictEqual(first.parts.find(p => p.id === 'regularity').score, null, '履歴がない日は規則正しさを採点しない');
+assert.strictEqual(M.sleepScore(days, '2030-01-01', profile), null, '睡眠データがない日は点数を作らない');
 console.log(M.lifestyleAdvice(days, profile));
 console.log(M.buildConsultText(days, profile).split('\n').slice(0, 5).join('\n'));
 console.log('✅ すべてのテストに合格');

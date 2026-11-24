@@ -401,6 +401,96 @@
     return out;
   }
 
+  // ---------- 毎晩の睡眠スコア（100点満点） ----------
+  // 睡眠時間40点・規則正しさ20点・中断の少なさ20点・睡眠の質20点
+  // データがない項目は採点から外し、残りの項目で100点に換算する
+  function sleepScore(days, key, profile) {
+    const d = days[key];
+    const n = d && d.night;
+    if (!n) return null;
+    const rec = recommendedSleep(profile);
+    const parts = [];
+
+    // ① 睡眠時間
+    {
+      const t = n.totalMin;
+      let s;
+      if (t >= rec.min && t <= rec.max + 60) s = 40;
+      else if (t > rec.max + 60) s = 34;
+      else s = Math.max(0, 40 * (t - 240) / (rec.min - 240));
+      const short = rec.min - t;
+      parts.push({
+        id: 'duration', name: '睡眠時間', score: Math.round(s), max: 40,
+        note: fmtMin(t) + '（目安 ' + rec.label + '）',
+        tip: short > 0
+          ? 'あと' + fmtMin(short) + '長く眠ると満点です。今夜は ' + fmtClock(n.wake - rec.min * 60000) + ' までに眠りにつくのが目標です（起床 ' + fmtTime(n.wake) + ' の場合）。'
+          : (t > rec.max + 60 ? '寝すぎの日が続くとかえってだるくなることがあります。起きる時刻をそろえましょう。' : '十分な睡眠時間です。このまま続けましょう。')
+      });
+    }
+
+    // ② 規則正しさ（直近7晩の平均就寝時刻とのずれ）
+    {
+      const cur = getMetric(d, 'bedMin');
+      const base = baseline(days, key, 'bedMin', 7);
+      if (cur != null && base != null) {
+        const diff = Math.abs(cur - base);
+        const s = diff <= 30 ? 20 : diff <= 60 ? 15 : diff <= 90 ? 10 : diff <= 120 ? 5 : 0;
+        parts.push({
+          id: 'regularity', name: '規則正しさ', score: s, max: 20,
+          note: '就寝 ' + fmtTime(n.bed) + '（いつもの平均 ' + fmtClock(minToClockMs(base)) + '、ずれ ' + Math.round(diff) + '分）',
+          tip: diff <= 30 ? 'いつもと同じ時刻に眠れています。' : '寝る時刻と起きる時刻を毎日30分以内にそろえると点数が上がります。休日の寝坊は1時間以内にしましょう。'
+        });
+      } else {
+        parts.push({ id: 'regularity', name: '規則正しさ', score: null, max: 20, note: 'データ未取得（3晩分以上で採点します）', tip: '' });
+      }
+    }
+
+    // ③ 中断の少なさ
+    {
+      const extraWake = Math.max(0, n.awakeCount - 2);
+      const extraMin = Math.max(0, n.awakeMin - 20);
+      const s = Math.max(0, 20 - extraWake * 3 - Math.floor(extraMin / 5));
+      parts.push({
+        id: 'interruptions', name: '中断の少なさ', score: s, max: 20,
+        note: '目が覚めた回数 ' + n.awakeCount + '回・起きていた時間 ' + fmtMin(n.awakeMin),
+        tip: s >= 18 ? 'ぐっすり眠れています。' : '夕方以降のカフェインと寝る前の飲酒を控え、寝室を暗く・静かに・涼しく（18〜22℃）しましょう。寝る前のトイレも効果的です。'
+      });
+    }
+
+    // ④ 睡眠の質（深い睡眠とレム睡眠の割合）
+    if (n.deepMin != null && n.totalMin) {
+      const deepPct = n.deepMin / n.totalMin * 100;
+      const remPct = n.remMin / n.totalMin * 100;
+      const s = Math.round(10 * Math.min(1, deepPct / 13) + 10 * Math.min(1, remPct / 20));
+      const tips = [];
+      if (deepPct < 13) tips.push('深い睡眠を増やすには、夕食を寝る3時間前までに済ませ、日中に体を動かしましょう（夕方の軽い運動が効果的）。');
+      if (remPct < 20) tips.push('レム睡眠は睡眠の後半に多く出ます。睡眠時間をしっかり確保し、寝る前の飲酒を控えましょう。');
+      parts.push({
+        id: 'quality', name: '睡眠の質', score: s, max: 20,
+        note: '深い睡眠 ' + Math.round(deepPct) + '%（目安13%以上）・レム睡眠 ' + Math.round(remPct) + '%（目安20%以上）',
+        tip: tips.length ? tips.join('') : '深い睡眠もレム睡眠も十分にとれています。'
+      });
+    } else {
+      parts.push({ id: 'quality', name: '睡眠の質', score: null, max: 20, note: 'データ未取得（睡眠ステージがありません）', tip: '' });
+    }
+
+    const scored = parts.filter(function (p) { return p.score != null; });
+    const got = scored.reduce(function (a, p) { return a + p.score; }, 0);
+    const max = scored.reduce(function (a, p) { return a + p.max; }, 0);
+    const total = max ? Math.round(got / max * 100) : null;
+    const label = total == null ? 'データ未取得' : total >= 85 ? 'とても良い' : total >= 70 ? '良い' : total >= 50 ? '普通' : '低い';
+    // いちばん点数を落としている項目＝最優先の改善点
+    const worst = scored.slice().sort(function (a, b) { return (a.score / a.max) - (b.score / b.max); })[0];
+    return { date: key, total: total, label: label, parts: parts, priority: worst && worst.score < worst.max ? worst : null };
+  }
+
+  function minToClockMs(mins) {
+    const m = ((Math.round(mins) % 1440) + 1440) % 1440;
+    const d = new Date(2000, 0, 1, Math.floor(m / 60), m % 60);
+    return d.getTime();
+  }
+  function fmtClock(ms) { return fmtTime(ms); }
+
   // 「Claudeに相談」用の文章
   function buildConsultText(days, profile) {
     const keys = Object.keys(days).sort().slice(-7);
@@ -422,6 +512,7 @@
       const parts = [k];
       if (n.totalMin != null) parts.push('睡眠' + fmtMin(n.totalMin) + '（深い' + (n.deepMin != null ? n.deepMin + '分' : '不明') + '・REM' + (n.remMin != null ? n.remMin + '分' : '不明') + '・覚醒' + n.awakeCount + '回）');
       if (n.bed) parts.push('就寝' + fmtTime(n.bed) + '・起床' + fmtTime(n.wake));
+      const sc = sleepScore(days, k, profile); if (sc && sc.total != null) parts.push('睡眠スコア' + sc.total + '点');
       if (n.hrAvg != null) parts.push('睡眠中心拍' + n.hrAvg);
       if (n.rrAvg != null) parts.push('呼吸数' + n.rrAvg);
       if (n.spo2Min != null) parts.push('血中酸素最低' + n.spo2Min + '%');
@@ -446,7 +537,7 @@
 
   const api = {
     parseText: parseText, mergeSamples: mergeSamples, buildDays: buildDays, buildNights: buildNights,
-    analyze: analyze, lifestyleAdvice: lifestyleAdvice, buildConsultText: buildConsultText,
+    analyze: analyze, lifestyleAdvice: lifestyleAdvice, sleepScore: sleepScore, buildConsultText: buildConsultText,
     getMetric: getMetric, baseline: baseline, bmi: bmi, age: age, recommendedSleep: recommendedSleep,
     fmtMin: fmtMin, fmtTime: fmtTime, dateKey: dateKey, addDays: addDays, typeCode: typeCode, parseDate: parseDate,
     LEVEL_LABEL: LEVEL_LABEL

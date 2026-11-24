@@ -103,6 +103,18 @@
     return v.length ? v.reduce(function (a, b) { return a + b; }, 0) / v.length : null;
   }
 
+  function scoreColor(t) { return t == null ? 'var(--sub)' : t >= 85 ? 'var(--green)' : t >= 70 ? 'var(--blue)' : t >= 50 ? 'var(--orange)' : 'var(--red)'; }
+  function scoreParts(sc) {
+    return sc.parts.map(function (p) {
+      const pct = p.score == null ? 0 : p.score / p.max * 100;
+      return '<div style="margin:12px 0">' +
+        '<div class="row" style="border:0;padding:0"><b>' + esc(p.name) + '</b><span>' + (p.score == null ? '<span class="muted">データ未取得</span>' : p.score + ' / ' + p.max + '点') + '</span></div>' +
+        '<div style="height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:4px 0"><div style="height:100%;width:' + pct + '%;background:' + scoreColor(pct) + '"></div></div>' +
+        '<div class="muted">' + esc(p.note) + '</div>' +
+        (p.tip ? '<div style="margin-top:2px">👉 ' + esc(p.tip) + '</div>' : '') + '</div>';
+    }).join('');
+  }
+
   // ---------- 各画面 ----------
   function emptyGuide() {
     return '<div class="card"><b>まだデータがありません</b>' +
@@ -125,6 +137,7 @@
       '<div class="card"><div class="label">今日の健康スコア（' + esc(shortDate(a.date)) + 'の朝）</div>' +
       '<div class="scorewrap">' + (ring || na()) + '<div>' + badge(a.level, a.levelLabel) +
       '<div class="muted" style="margin-top:6px">' + (a.findings.filter(function (f) { return f.level >= 1; }).length ? '気になる変化が ' + a.findings.filter(function (f) { return f.level >= 1; }).length + '件あります' : '大きな変化はありません') + '</div></div></div></div>' +
+      (function () { const sc = M.sleepScore(days, a.date, profile); return sc ? '<div class="card" id="homeSleep" style="cursor:pointer"><div class="label">昨夜の睡眠スコア</div><span class="big" style="color:' + scoreColor(sc.total) + '">' + (sc.total != null ? sc.total : '—') + '</span><span class="unit">点・' + esc(sc.label) + '</span>' + (sc.priority ? '<div class="muted">改善ポイント：' + esc(sc.priority.name) + ' ›</div>' : '') + '</div>' : ''; })() +
       '<div class="grid">' +
       '<div class="card"><div class="label">睡眠時間</div>' + (n.totalMin != null ? '<span class="big" style="font-size:22px">' + esc(M.fmtMin(n.totalMin)) + '</span>' : na()) + '</div>' +
       '<div class="card"><div class="label">安静時心拍数</div>' + val(d.rhr, '拍/分') + '</div>' +
@@ -135,6 +148,7 @@
       '<button id="consultBtn">Claudeにくわしく相談する（文章をコピー）</button>' +
       '<p class="disclaimer">医学的な診断ではありません。強い症状がある場合は医療機関に相談してください。</p>';
     $('consultBtn').onclick = copyConsult;
+    if ($('homeSleep')) $('homeSleep').onclick = function () { showTab('sleep'); };
   }
 
   function renderSleep(a) {
@@ -162,6 +176,23 @@
         '<div class="row"><span>手首皮膚温</span><span>' + (n.wtemp != null ? n.wtemp + ' ℃' : 'データ未取得') + '</span></div>' +
         '<div class="row"><span>いびき</span><span class="muted">無料版では測定できません</span></div>' +
         '</div>';
+    }
+    const sc = M.sleepScore(days, a.date, profile);
+    if (sc) {
+      html += '<h2>昨夜の睡眠スコア</h2><div class="card">' +
+        '<div style="display:flex;align-items:baseline;gap:8px"><span class="big" style="font-size:40px;color:' + scoreColor(sc.total) + '">' + (sc.total != null ? sc.total : '—') + '</span><span class="unit">点</span>' + '<span class="badge" style="background:' + scoreColor(sc.total) + '">' + esc(sc.label) + '</span></div>' +
+        (sc.priority ? '<div class="finding l1" style="margin-top:10px"><b>いちばんの改善ポイント：' + esc(sc.priority.name) + '</b><span>' + esc(sc.priority.tip) + '</span></div>' : '') +
+        scoreParts(sc) + '<div class="muted">採点：睡眠時間40点・規則正しさ20点・中断の少なさ20点・睡眠の質20点。データがない項目は除いて100点に換算します。</div></div>';
+    }
+    const list = lastNDays(14, a.date).reverse().map(function (k) { return M.sleepScore(days, k, profile); }).filter(Boolean);
+    if (list.length) {
+      html += '<h2>毎日の睡眠スコア</h2><div class="card">' + list.map(function (x) {
+        const n2 = days[x.date].night;
+        return '<details style="border-bottom:1px solid var(--line);padding:8px 0"><summary style="display:flex;justify-content:space-between;align-items:center;list-style:none;cursor:pointer">' +
+          '<span>' + esc(shortDate(x.date)) + '（' + '日月火水木金土'[new Date(x.date + 'T12:00').getDay()] + '）<span class="muted"> ' + esc(M.fmtMin(n2.totalMin)) + '</span></span>' +
+          '<span><b style="color:' + scoreColor(x.total) + '">' + (x.total != null ? x.total + '点' : '—') + '</b> <span class="muted">' + esc(x.label) + ' ›</span></span></summary>' +
+          scoreParts(x) + '</details>';
+      }).join('') + '<div class="muted" style="margin-top:6px">日付を押すと、その日の細かい点数と改善点が見られます。</div></div>';
     }
     const keys = lastNDays(7, a.date);
     html += '<h2>睡眠の週間推移</h2><div class="card">' +
