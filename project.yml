@@ -1,0 +1,36 @@
+name: MyHealthAI
+options:
+  bundleIdPrefix: com.myhealthai
+  deploymentTarget:
+    iOS: "17.0"
+  developmentLanguage: ja
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  MyHealthAI:
+    type: application
+    platform: iOS
+    sources:
+      - MyHealthAI
+    info:
+      path: MyHealthAI/Info.plist
+      properties:
+        CFBundleDisplayName: MY HEALTH AI
+        CFBundleDevelopmentRegion: ja
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSHealthShareUsageDescription: 睡眠・心拍数・HRV・歩数などのデータを読み取り、あなたの体調の変化を分析するために使います。データは端末の中で処理されます。
+        NSHealthUpdateUsageDescription: このアプリはヘルスケアにデータを書き込みませんが、iOSの仕組み上この説明が必要です。
+        NSMicrophoneUsageDescription: 睡眠中のいびきや咳を検知するために使います。音声は端末の中だけで処理し、外部には送信しません。
+    entitlements:
+      path: MyHealthAI/MyHealthAI.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.myhealthai.app
+        TARGETED_DEVICE_FAMILY: "1"

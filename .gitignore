@@ -1,0 +1,15 @@
+# XcodeGenで毎回作り直すので保存しない
+*.xcodeproj
+*.xcworkspace
+DerivedData/
+build/
+build.log
+*.ipa
+*.dSYM.zip
+.DS_Store
+
+# 秘密情報は絶対に保存しない
+*.p8
+*.p12
+*.mobileprovision
+.env
