@@ -47,8 +47,35 @@
   }
 
   // ショートカットから「#import=...」で開かれたとき
+  // ショートカットから「#paste」で開かれたとき：コピーされたデータを取り込むボタンを出す
+  function readClipboardAndImport() {
+    if (!navigator.clipboard || !navigator.clipboard.readText) { toast('この画面では貼り付けできません。「データ」タブの欄に貼り付けてください'); showTab('data'); return; }
+    navigator.clipboard.readText().then(function (t) {
+      hidePasteBanner();
+      if (!t || t.indexOf('|') < 0) { toast('コピーされたデータが見つかりません。ショートカットをもう一度実行してください'); return; }
+      importText(t);
+    }, function () { toast('貼り付けが許可されませんでした。「データ」タブの欄に貼り付けてください'); showTab('data'); });
+  }
+  function showPasteBanner() {
+    if ($('pasteBanner')) return;
+    const b = document.createElement('div');
+    b.id = 'pasteBanner';
+    b.className = 'card';
+    b.style.border = '2px solid var(--blue)';
+    b.innerHTML = '<b>ショートカットからデータが届いています</b><div class="muted">下のボタンを押し、出てきた「ペースト」を押すと取り込みます。</div><button id="pasteBtn">データを取り込む</button>';
+    document.querySelector('main').prepend(b);
+    $('pasteBtn').onclick = readClipboardAndImport;
+  }
+  function hidePasteBanner() { const b = $('pasteBanner'); if (b) b.remove(); }
+
   function checkHashImport() {
     const h = location.hash || '';
+    if (h === '#paste') {
+      history.replaceState(null, '', location.pathname + location.search);
+      showTab('home');
+      showPasteBanner();
+      return;
+    }
     const m = h.match(/^#import=([\s\S]*)$/);
     if (!m) return;
     let text = m[1];
@@ -304,6 +331,7 @@
     if (profile.birthYear && (profile.birthYear < 1900 || profile.birthYear > new Date().getFullYear())) { toast('生まれた年を確認してください'); return; }
     save(KEY_PROFILE, profile); toast('プロフィールを保存しました'); render();
   };
+  $('importClipboard').onclick = readClipboardAndImport;
   $('importPaste').onclick = function () {
     const t = $('pasteArea').value;
     if (!t.trim()) { toast('貼り付けた内容がありません'); return; }

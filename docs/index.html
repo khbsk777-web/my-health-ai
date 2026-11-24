@@ -100,7 +100,9 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px;word-
 
     <h2>データの取り込み</h2>
     <div class="card">
-      <div class="muted">ふだんはショートカットを実行すると自動で取り込まれます。うまくいかないときは、ショートカットがコピーした文字をここに貼り付けてください。</div>
+      <div class="muted">ショートカット「MY HEALTH AI 取り込み」を実行すると、データがコピーされてこの画面が開きます。</div>
+      <button id="importClipboard">コピーしたデータを取り込む</button>
+      <div class="muted" style="margin-top:12px">うまくいかないときは、下の欄に長押しで貼り付けてください。</div>
       <textarea id="pasteArea" placeholder="種類|開始日|終了日|値|単位"></textarea>
       <button id="importPaste">貼り付けた内容を取り込む</button>
     </div>
