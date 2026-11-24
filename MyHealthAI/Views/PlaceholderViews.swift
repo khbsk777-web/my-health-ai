@@ -30,31 +30,4 @@ struct ExerciseView: View {
     }
 }
 
-/// ⑤ データ管理画面（STEP 4で実装）
-struct DataSettingsView: View {
-    var body: some View {
-        NavigationStack {
-            List {
-                Section("Appleヘルスケア連携") {
-                    Label("連携状態：未設定", systemImage: "heart.text.square")
-                }
-                Section("プライバシー") {
-                    Label("健康データは端末の中だけで処理します", systemImage: "lock")
-                    Label("音声は外部に送信しません", systemImage: "mic.slash")
-                }
-                Section("アプリ情報") {
-                    LabeledContent("バージョン", value: Bundle.main.appVersion)
-                }
-            }
-            .navigationTitle("データ管理")
-        }
-    }
-}
-
-extension Bundle {
-    var appVersion: String {
-        let version = infoDictionary?["CFBundleShortVersionString"] as? String ?? "-"
-        let build = infoDictionary?["CFBundleVersion"] as? String ?? "-"
-        return "\(version) (\(build))"
-    }
-}
+// ⑤ データ管理画面は DataSettingsView.swift に移動しました（STEP 4）
